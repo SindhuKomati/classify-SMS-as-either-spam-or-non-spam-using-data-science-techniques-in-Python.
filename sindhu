@@ -1,0 +1,57 @@
+# Import necessary libraries
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.naive_bayes import MultinomialNB
+from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
+from sklearn.pipeline import make_pipeline
+from nltk.corpus import stopwords
+from nltk.stem import PorterStemmer
+from nltk.tokenize import word_tokenize
+from sklearn.model_selection import cross_val_score
+
+# Download NLTK resources
+import nltk
+nltk.download('stopwords')
+nltk.download('punkt')
+
+# Load the SMS Spam Collection dataset
+url = "https://archive.ics.uci.edu/ml/machine-learning-databases/00228/smsspamcollection.zip"
+df = pd.read_csv(url, sep='\t', names=['label', 'message'])
+
+# Data preprocessing
+df['label'] = df['label'].map({'ham': 0, 'spam': 1})
+stop_words = set(stopwords.words('english'))
+stemmer = PorterStemmer()
+
+def preprocess_text(text):
+    words = word_tokenize(text.lower())
+    words = [stemmer.stem(word) for word in words if word.isalpha() and word not in stop_words]
+    return ' '.join(words)
+
+df['message'] = df['message'].apply(preprocess_text)
+
+# Split the data into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(df['message'], df['label'], test_size=0.2, random_state=42)
+
+# Build a text classification model using a pipeline
+model = make_pipeline(CountVectorizer(), MultinomialNB())
+model.fit(X_train, y_train)
+
+# Make predictions on the test set
+y_pred = model.predict(X_test)
+
+# Evaluate the model
+accuracy = accuracy_score(y_test, y_pred)
+print(f"Accuracy: {accuracy:.2f}")
+
+# Display additional metrics
+print("\nClassification Report:")
+print(classification_report(y_test, y_pred))
+
+print("\nConfusion Matrix:")
+print(confusion_matrix(y_test, y_pred))
+
+# Cross-validation score
+cv_scores = cross_val_score(model, df['message'], df['label'], cv=5)
+print(f"\nCross-validation Scores: {cv_scores}")
